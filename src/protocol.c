@@ -1,6 +1,7 @@
 #include "protocol.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const char *OPERACIONES_VALIDAS[] = {
@@ -21,10 +22,16 @@ static const size_t NUM_OPERACIONES =
 
 static unsigned int sumar_bytes_cadena(const char *s) {
     unsigned int suma = 0;
+
+    if (s == NULL) {
+        return 0;
+    }
+
     while (*s) {
         suma += (unsigned char)(*s);
         s++;
     }
+
     return suma;
 }
 
@@ -38,6 +45,7 @@ int es_operacion_valida(const char *operacion) {
             return 1;
         }
     }
+
     return 0;
 }
 
@@ -96,7 +104,8 @@ int construir_mensaje(Message *msg,
     size_t len_op = strlen(operacion);
     size_t len_body = (cuerpo != NULL) ? strlen(cuerpo) : 0;
 
-    if (len_dest >= MAX_NAME || len_orig >= MAX_NAME || len_op >= MAX_OPERATION || len_body > MAX_BODY) {
+    if (len_dest >= MAX_NAME || len_orig >= MAX_NAME ||
+        len_op >= MAX_OPERATION || len_body > MAX_BODY) {
         return -3;
     }
 
@@ -108,8 +117,6 @@ int construir_mensaje(Message *msg,
 
     if (cuerpo != NULL) {
         strcpy(msg->cuerpo, cuerpo);
-    } else {
-        msg->cuerpo[0] = '\0';
     }
 
     msg->longitud = (int)len_body;
@@ -174,6 +181,8 @@ int deserializar_mensaje(const char *buffer,
         return -1;
     }
 
+    memset(msg, 0, sizeof(Message));
+
     const char *salto = NULL;
     for (size_t i = 0; i < bytes_recibidos; i++) {
         if (buffer[i] == '\n') {
@@ -196,29 +205,28 @@ int deserializar_mensaje(const char *buffer,
     memcpy(header, buffer, header_size);
     header[header_size] = '\0';
 
-    char *saveptr = NULL;
-    char *token = strtok_r(header, "|", &saveptr);
+    char *token = strtok(header, "|");
     if (token == NULL) return -4;
     if (strlen(token) >= MAX_NAME) return -5;
     strcpy(msg->destinatario, token);
 
-    token = strtok_r(NULL, "|", &saveptr);
+    token = strtok(NULL, "|");
     if (token == NULL) return -6;
     if (strlen(token) >= MAX_NAME) return -7;
     strcpy(msg->origen, token);
 
-    token = strtok_r(NULL, "|", &saveptr);
+    token = strtok(NULL, "|");
     if (token == NULL) return -8;
     if (strlen(token) >= MAX_OPERATION) return -9;
     if (!es_operacion_valida(token)) return -10;
     strcpy(msg->operacion, token);
 
-    token = strtok_r(NULL, "|", &saveptr);
+    token = strtok(NULL, "|");
     if (token == NULL) return -11;
     msg->longitud = atoi(token);
     if (msg->longitud < 0 || msg->longitud > MAX_BODY) return -12;
 
-    token = strtok_r(NULL, "|", &saveptr);
+    token = strtok(NULL, "|");
     if (token == NULL) return -13;
     msg->validacion = (unsigned int)strtoul(token, NULL, 10);
 

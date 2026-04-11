@@ -4,6 +4,15 @@
 #include <stddef.h>
 #include "common.h"
 
+/* Estructura de mensaje 
+DESTINATARIO: hacia donde va
+ORIGEN : quien lo envía
+OPERACION: tipo de mensaje
+LONGITUD: longitud del cuerpo
+VALIDACION: checksum del mensaje
+CUERPO: contenido del mensaje
+*/
+
 typedef struct {
     char destinatario[MAX_NAME];
     char origen[MAX_NAME];
@@ -20,10 +29,6 @@ int construir_mensaje(Message *msg,
                       const char *operacion,
                       const char *cuerpo);
 
-unsigned int calcular_checksum(const Message *msg);
-int validar_checksum(const Message *msg);
-int es_operacion_valida(const char *operacion);
-int es_estado_valido(const char *estado);
 
 /* Serialización:
    Formato:
@@ -38,5 +43,12 @@ int serializar_mensaje(const Message *msg,
 int deserializar_mensaje(const char *buffer,
                          size_t bytes_recibidos,
                          Message *msg);
+
+unsigned int calcular_checksum(const Message *msg);
+int validar_checksum(const Message *msg);
+
+int es_operacion_valida(const char *operacion);
+int es_estado_valido(const char *estado);
+
 
 #endif

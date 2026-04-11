@@ -1,0 +1,1 @@
+** Doc bonito para documentar el análisis de concurrencia **
