@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "common.h"
 #include "server.h"
@@ -94,17 +95,55 @@ static int resolve_timeout(void) {
 	return timeout;
 }
 
+static int parse_port(const char *value, int *out_port) {
+	char *endptr = NULL;
+	errno = 0;
+	long parsed = strtol(value, &endptr, 10);
+
+	if (value == endptr || *endptr != '\0' || errno != 0 || parsed <= 0 || parsed > 65535) {
+		return -1;
+	}
+
+	*out_port = (int)parsed;
+	return 0;
+}
+
+static int resolve_port(int argc, char const *argv[], int *out_port) {
+	const char *source = "valor por defecto";
+	const char *value = NULL;
+
+	if (argc == 2) {
+		source = "argumento";
+		value = argv[1];
+	} else {
+		value = getenv("CHAT_PORT");
+		if (value != NULL && value[0] != '\0') {
+			source = "CHAT_PORT";
+		} else {
+			*out_port = PORT;
+			return 0;
+		}
+	}
+
+	if (parse_port(value, out_port) != 0) {
+		fprintf(stderr, "Puerto invalido (%s): %s\n", source, value);
+		return -1;
+	}
+
+	return 0;
+}
+
 int main(int argc, char const *argv[]) {
 	load_dotenv(".env");
 
-	if (argc != 2) {
-		fprintf(stderr, "Uso: %s <puerto>\n", argv[0]);
+	if (argc > 2) {
+		fprintf(stderr, "Uso: %s [puerto]\n", argv[0]);
+		fprintf(stderr, "Si no se especifica puerto, se usa CHAT_PORT de .env o PORT por defecto.\n");
 		return 1;
 	}
 
-	int port = atoi(argv[1]);
-	if (port <= 0 || port > 65535) {
-		fprintf(stderr, "Puerto invalido: %s\n", argv[1]);
+	int port = PORT;
+	if (resolve_port(argc, argv, &port) != 0) {
 		return 1;
 	}
 

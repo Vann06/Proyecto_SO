@@ -83,6 +83,7 @@ Valores recomendados para pruebas locales:
 
 ```env
 CHAT_ENV=testing
+CHAT_PORT=8080
 CHAT_INACTIVITY_TIMEOUT=180
 CHAT_ENFORCE_UNIQUE_IP=0
 ```
@@ -100,6 +101,14 @@ Al terminar, tendrás dos ejecutables:
 - `client`
 
 ### 5. Iniciar servidor (Terminal 1)
+
+Usando puerto desde `.env` (`CHAT_PORT`):
+
+```bash
+./server
+```
+
+También puedes sobreescribirlo por argumento:
 
 ```bash
 ./server 8080
@@ -233,8 +242,15 @@ Solución: verifica que IP, puerto y servidor en ejecución coincidan.
 El servidor lee `.env` al iniciar:
 
 - `CHAT_ENV`: `production` o `testing`
+- `CHAT_PORT`: puerto del servidor (default `8080`)
 - `CHAT_INACTIVITY_TIMEOUT`: timeout en segundos (default 180)
 - `CHAT_ENFORCE_UNIQUE_IP`: `1` o `0` (override explícito)
+
+Prioridad del puerto del servidor:
+
+- argumento `./server <puerto>`
+- `CHAT_PORT` en `.env`
+- default compilado (`PORT=8080`)
 
 Referencia: [.env.example](.env.example)
 
