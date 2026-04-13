@@ -79,8 +79,12 @@ int register_user(int socket_fd, const char *username) {
         return -1;
     }
 
-    // Asumimos exito si no es un error
-    printf("Registro exitoso!\n");
+    if (strcmp(response.operacion, "INFO_RES") != 0) {
+        printf("Respuesta inesperada del servidor durante registro.\n");
+        return -1;
+    }
+
+    printf("Registro exitoso: %s\n", response.cuerpo);
     return 0;
 }
 
@@ -88,23 +92,30 @@ int main(int argc, char const *argv[]) {
     printf("=== CHAT MULTICLIENTE ===\n");
 
     char ip[16];
-    int port = PORT; // Default defined in common.h
+    int port = PORT;
     char username[MAX_NAME];
 
-    if (argc >= 3) {
-        strncpy(ip, argv[1], sizeof(ip) - 1);
-        ip[sizeof(ip) - 1] = '\0';
-        port = atoi(argv[2]);
-    } else {
-        printf("Introduce IP del servidor (ej. 127.0.0.1): ");
-        if (!fgets(ip, sizeof(ip), stdin)) return 1;
-        ip[strcspn(ip, "\n")] = '\0';
-        if (strlen(ip) == 0) strcpy(ip, "127.0.0.1");
+    if (argc != 4) {
+        fprintf(stderr, "Uso: %s <usuario> <ip_servidor> <puerto_servidor>\n", argv[0]);
+        return 1;
     }
 
-    printf("Introduce tu nombre de usuario: ");
-    if (!fgets(username, sizeof(username), stdin)) return 1;
-    username[strcspn(username, "\n")] = '\0';
+    strncpy(username, argv[1], sizeof(username) - 1);
+    username[sizeof(username) - 1] = '\0';
+
+    strncpy(ip, argv[2], sizeof(ip) - 1);
+    ip[sizeof(ip) - 1] = '\0';
+
+    port = atoi(argv[3]);
+    if (port <= 0 || port > 65535) {
+        fprintf(stderr, "Puerto invalido: %s\n", argv[3]);
+        return 1;
+    }
+
+    if (strlen(username) == 0) {
+        fprintf(stderr, "Nombre de usuario invalido.\n");
+        return 1;
+    }
 
     int socket_fd = connect_to_server(ip, port);
     if (socket_fd < 0) {
@@ -126,7 +137,7 @@ int main(int argc, char const *argv[]) {
 
     // Iniciar hilo receptor
     pthread_t receiver_thread;
-    if (pthread_create(&receiver_thread, NULL, receiver_thread_func, &ctx) < 0) {
+    if (pthread_create(&receiver_thread, NULL, receiver_thread_func, &ctx) != 0) {
         perror("No se pudo crear el hilo receptor");
         close(socket_fd);
         return 1;
@@ -140,8 +151,8 @@ int main(int argc, char const *argv[]) {
     
     // Cerramos el socket, lo cual destrabará recv() en el hilo receptor 
     // o podemos esperarlo.
+    shutdown(socket_fd, SHUT_RDWR);
     close(socket_fd);
-    pthread_cancel(receiver_thread); // Forzamos salida del receptor porque recv bloquea
     pthread_join(receiver_thread, NULL);
     
     pthread_mutex_destroy(&ctx.console_mutex);
