@@ -1,140 +1,130 @@
 # Protocolo de Comunicación
 
-## 1. Introducción
+## 1. Formato general
 
-El sistema de chat utiliza un protocolo de comunicación propio entre cliente y servidor. Su objetivo es definir una estructura uniforme para enviar y recibir mensajes, de manera que ambos extremos interpreten correctamente cada operación.
+Cada mensaje se envía como:
 
-El protocolo fue diseñado para ser simple, consistente y fácil de implementar en C sobre sockets TCP.
-
-## 2. Objetivos específicos
-
-- Definir un formato estándar para todos los mensajes.
-- Permitir registro, consulta, mensajería y cierre de sesión.
-- Validar la integridad de cada mensaje.
-- Separar claramente encabezado y cuerpo del mensaje.
-
-## 3. Supuestos
-
-- La comunicación será por TCP.
-- Los mensajes serán de texto.
-- Los nombres de usuario serán únicos.
-- El cuerpo del mensaje tendrá un tamaño máximo de 512 caracteres.
-- Los estados válidos serán ACTIVO, OCUPADO e INACTIVO.
-
-## 4. Alcance
-
-El protocolo cubre:
-
-- Registro de usuario
-- Consulta de usuarios conectados
-- Consulta de información de usuario
-- Cambio de estado
-- Mensaje directo
-- Broadcast
-- Cierre de sesión
-- Manejo de errores
-
-No cubre:
-
-- Transferencia de archivos
-- Cifrado
-- Historial persistente
-- Autenticación con contraseña
-
-## 5. Estructura del mensaje
-
-Formato general:
-
+```text
 DESTINATARIO|ORIGEN|OPERACION|LONGITUD|VALIDACION
 CUERPO
+```
 
-## 6. Significado de los campos
+- La primera línea es el encabezado.
+- La segunda línea es el cuerpo.
+- `LONGITUD` representa los bytes del cuerpo.
+- `VALIDACION` es un checksum simple del cuerpo.
 
-### DESTINATARIO
-Indica a quién va dirigido el mensaje. Puede ser SERVER, ALL o el nombre de un usuario.
+## 2. Campos
 
-### ORIGEN
-Indica quién envía el mensaje.
+- `DESTINATARIO`: `SERVER`, `ALL` o username específico.
+- `ORIGEN`: username del emisor (o `SERVER` para respuestas del servidor).
+- `OPERACION`: tipo de operación.
+- `LONGITUD`: tamaño del cuerpo.
+- `VALIDACION`: checksum del cuerpo.
+- `CUERPO`: payload de la operación.
 
-### OPERACION
-Acción que se desea ejecutar.
+## 3. Operaciones válidas
 
-### LONGITUD
-Número de bytes del cuerpo.
+- `REGISTER`
+- `EXIT`
+- `STATUS`
+- `LIST_REQ`
+- `LIST_RES`
+- `BROADCAST`
+- `DM`
+- `ERROR`
+- `INFO_REQ`
+- `INFO_RES`
 
-### VALIDACION
-Checksum simple para verificar integridad.
+## 4. Estados válidos
 
-### CUERPO
-Contenido de la operación.
+- `ACTIVO`
+- `OCUPADO`
+- `INACTIVO`
 
-## 7. Operaciones válidas
+## 5. Semántica por operación
 
-- REGISTER
-- EXIT
-- STATUS
-- LIST_REQ
-- LIST_RES
-- BROADCAST
-- DM
-- ERROR
-- INFO_REQ
-- INFO_RES
+### `REGISTER`
 
-## 8. Estados válidos
+Solicitud del cliente para registrarse.
 
-- ACTIVO
-- OCUPADO
-- INACTIVO
+- Destino: `SERVER`
+- Cuerpo: vacío
+- Respuesta exitosa: `INFO_RES` con `username,ip,ACTIVO`
+- Respuesta de error: `ERROR` (`usuario duplicado`, `ip duplicada`, etc.)
 
-## 9. Ejemplos
+### `LIST_REQ` / `LIST_RES`
 
-### Registro
-SERVER|Ana|REGISTER|3|0
-Ana
+Consulta de usuarios conectados.
 
-### Lista de usuarios
-SERVER|Ana|LIST_REQ|0|0
+- `LIST_REQ`: destino `SERVER`, cuerpo vacío
+- `LIST_RES`: respuesta del servidor con usernames separados por coma
+- Ejemplo de cuerpo: `alice,bob,charlie`
 
-### Respuesta de lista
-Ana|SERVER|LIST_RES|14|0
-Ana,Luis,Pedro
+### `INFO_REQ` / `INFO_RES`
 
-### Información de usuario
-SERVER|Ana|INFO_REQ|4|0
-Luis
+Consulta de información de un usuario.
 
-### Mensaje directo
-Luis|Ana|DM|10|0
-hola luis
+- `INFO_REQ`: cuerpo con username objetivo
+- `INFO_RES`: `username,ip,status`
 
-### Broadcast
-ALL|Ana|BROADCAST|12|0
-hola a todos
+### `STATUS`
 
-### Cambio de estado
-SERVER|Ana|STATUS|7|0
-OCUPADO
+Cambio de estado del usuario emisor.
 
-### Error
-Ana|SERVER|ERROR|19|0
-usuario no existe
+- Destino: `SERVER`
+- Cuerpo: `ACTIVO`, `OCUPADO` o `INACTIVO`
+- Respuesta: `INFO_RES` con el estado aplicado en cuerpo
 
-## 10. Flujo de conexión
+### `DM`
 
-1. El cliente establece conexión TCP con el servidor.
-2. El cliente envía REGISTER.
-3. El servidor valida y responde.
-4. Durante la sesión el cliente puede enviar LIST_REQ, INFO_REQ, STATUS, DM, BROADCAST y EXIT.
-5. El servidor procesa y responde según la operación.
-6. El cliente envía EXIT para cerrar la sesión.
+Mensaje directo entre usuarios.
 
-## 11. Manejo de errores
+- Destino: username objetivo
+- Cuerpo: mensaje textual
+- Si el usuario destino no existe, el emisor recibe `ERROR`
 
-Se responderá con ERROR cuando:
+### `BROADCAST`
 
-- la operación no exista
-- el usuario destino no exista
-- el formato del mensaje sea inválido
-- el checksum no coincida
-- la longitud sea inconsistente
+Mensaje para todos los usuarios conectados, excluyendo al emisor.
+
+- Destino: `ALL`
+- Cuerpo: mensaje textual
+
+### `EXIT`
+
+Cierre de sesión.
+
+- Destino: `SERVER`
+- Cuerpo: vacío
+- El servidor elimina al usuario del registro y cierra su sesión
+
+### `ERROR`
+
+Respuesta del servidor ante solicitudes inválidas o inconsistentes.
+
+## 6. Validaciones del servidor
+
+El servidor valida:
+
+- estructura de encabezado
+- operación válida
+- consistencia `LONGITUD` vs cuerpo recibido
+- checksum (`VALIDACION`)
+- coherencia `ORIGEN` con el socket registrado
+
+Si una validación falla, responde `ERROR` y puede descartar el mensaje inválido.
+
+## 7. Flujo de sesión
+
+1. Cliente abre TCP hacia servidor.
+2. Cliente envía `REGISTER`.
+3. Servidor responde `INFO_RES` o `ERROR`.
+4. Cliente opera con `LIST_REQ`, `INFO_REQ`, `STATUS`, `DM`, `BROADCAST`.
+5. Cliente envía `EXIT` para terminar sesión.
+
+## 8. Notas de implementación
+
+- El timeout de inactividad se configura con `CHAT_INACTIVITY_TIMEOUT`.
+- El modo `CHAT_ENV=testing` permite múltiples clientes desde la misma IP para pruebas locales.
+- En modo `production`, por defecto se fuerza unicidad de IP (salvo override explícito).

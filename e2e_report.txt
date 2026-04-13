@@ -1,0 +1,320 @@
+=== e2e report ===
+root: /mnt/c/Users/djlop/OneDrive/DIEGO/UVG/2026/primer semestre/Sistemas Operativos/Proyecto_SO
+rm -f client server
+gcc -Wall -Wextra -std=c11 -Iinclude -pthread -o client src/main_client.c src/client_receiver.c src/client_ui.c src/protocol.c src/utils.c -pthread
+gcc -Wall -Wextra -std=c11 -Iinclude -pthread -o server src/main_server.c src/server.c src/server_handlers.c src/server_registry.c src/protocol.c src/utils.c -pthread
+
+[CASE] production bloquea ip duplicada
+--- case1 production ---
+file: /tmp/tmp.YJRBdgl3rv/case1_alice.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: alice,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case1_bob.log
+=== CHAT MULTICLIENTE ===
+Error en registro: ip duplicada
+
+file: /tmp/tmp.YJRBdgl3rv/server_9301.log
+timeout de inactividad: 30 segundos
+Servidor escuchando en puerto 9301...
+
+[PASS] production bloquea ip duplicada
+
+[CASE] testing permite misma ip
+--- case2 testing ---
+file: /tmp/tmp.YJRBdgl3rv/case2_alice.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: alice,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case2_bob.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: bob,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/server_9302.log
+timeout de inactividad: 30 segundos
+Servidor escuchando en puerto 9302...
+
+[PASS] testing permite misma ip
+
+[CASE] flujo core con timeout inactivo
+--- case3 core ---
+file: /tmp/tmp.YJRBdgl3rv/case3_alice.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: alice,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+Comando no reconocido. Escriba LIST, INFO, STATUS, MSG, BROADCAST o EXIT.
+Estado actualizado temporalmente.
+
+[Servidor Info]:
+OCUPADO
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case3_bob.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: bob,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[General - alice]: hola_todos
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case3_charlie.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: charlie,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[General - alice]: hola_todos
+> 
+[Servidor Info]:
+alice,charlie,bob
+> 
+[Servidor Info]:
+alice,127.0.0.1,INACTIVO
+> 
+[Servidor Info]:
+bob,127.0.0.1,INACTIVO
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/server_9303.log
+timeout de inactividad: 5 segundos
+Servidor escuchando en puerto 9303...
+
+[PASS] flujo core con timeout inactivo
+
+[CASE] exit limpia sesion
+--- case4 cleanup ---
+file: /tmp/tmp.YJRBdgl3rv/case4_alice.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: alice,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case4_bob.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: bob,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[Servidor Info]:
+bob
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/server_9304.log
+timeout de inactividad: 30 segundos
+Servidor escuchando en puerto 9304...
+
+[PASS] exit limpia sesion
+
+[CASE] estres basico concurrente
+--- case5 stress ---
+file: /tmp/tmp.YJRBdgl3rv/case5_observer.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: observer,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[General - u2]: ping_u2
+> 
+[General - u1]: ping_u1
+> 
+[General - u3]: ping_u3
+> 
+[General - u4]: ping_u4
+> 
+[General - u5]: ping_u5
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/server_9305.log
+timeout de inactividad: 30 segundos
+Servidor escuchando en puerto 9305...
+
+file: /tmp/tmp.YJRBdgl3rv/case5_u1.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: u1,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[General - u2]: ping_u2
+> 
+[General - u3]: ping_u3
+> 
+[General - u4]: ping_u4
+> 
+[General - u5]: ping_u5
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case5_u2.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: u2,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[General - u1]: ping_u1
+> 
+[General - u3]: ping_u3
+> 
+[General - u4]: ping_u4
+> 
+[General - u5]: ping_u5
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case5_u3.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: u3,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[General - u2]: ping_u2
+> 
+[General - u1]: ping_u1
+> 
+[General - u4]: ping_u4
+> 
+[General - u5]: ping_u5
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case5_u4.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: u4,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[General - u1]: ping_u1
+> 
+[General - u2]: ping_u2
+> 
+[General - u3]: ping_u3
+> 
+[General - u5]: ping_u5
+> Conexión cerrada. Hasta luego!
+
+file: /tmp/tmp.YJRBdgl3rv/case5_u5.log
+=== CHAT MULTICLIENTE ===
+Registro exitoso: u5,127.0.0.1,ACTIVO
+
+==== MENU DE COMANDOS ====
+LIST                     -> Ver usuarios conectados
+INFO <usuario>           -> Ver info de un usuario
+STATUS <estado>          -> Cambiar estado (ACTIVO, OCUPADO, INACTIVO)
+MSG <usuario> <mensaje>  -> Enviar mensaje directo
+BROADCAST <mensaje>      -> Enviar mensaje a todos
+EXIT                     -> Salir del chat
+=========================
+
+[General - u1]: ping_u1
+> 
+[General - u2]: ping_u2
+> 
+[General - u3]: ping_u3
+> 
+[General - u4]: ping_u4
+> Conexión cerrada. Hasta luego!
+
+[PASS] estres basico concurrente
+
+=== summary ===
+pass: 5
+fail: 0
