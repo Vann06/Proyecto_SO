@@ -3,8 +3,21 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <time.h>
 #include "client_ui.h"
 #include "protocol.h"
+
+static void format_current_timestamp(char *out, size_t out_size) {
+    time_t now = time(NULL);
+    struct tm tm_now;
+
+    if (localtime_r(&now, &tm_now) == NULL) {
+        snprintf(out, out_size, "00:00:00");
+        return;
+    }
+
+    strftime(out, out_size, "%H:%M:%S", &tm_now);
+}
 
 void mostrar_menu() {
     printf("\n==== MENU DE COMANDOS ====\n");
@@ -98,7 +111,11 @@ void start_ui(ClientContext *ctx) {
             char *userToken = strtok(NULL, " ");
             char *msgToken = strtok(NULL, "");
             if (userToken && msgToken) {
-                send_message(ctx, userToken, "DM", msgToken);
+                if (send_message(ctx, userToken, "DM", msgToken) == 0) {
+                    char ts[16];
+                    format_current_timestamp(ts, sizeof(ts));
+                    printf("[%s] [Enviado -> %s]: %s\n", ts, userToken, msgToken);
+                }
             } else {
                 printf("Uso: MSG <usuario> <mensaje>\n");
             }
@@ -106,7 +123,11 @@ void start_ui(ClientContext *ctx) {
         else if (strcmp(cmd, "BROADCAST") == 0) {
             token = strtok(NULL, "");
             if (token) {
-                send_message(ctx, "ALL", "BROADCAST", token);
+                if (send_message(ctx, "ALL", "BROADCAST", token) == 0) {
+                    char ts[16];
+                    format_current_timestamp(ts, sizeof(ts));
+                    printf("[%s] [Broadcast enviado]: %s\n", ts, token);
+                }
             } else {
                 printf("Uso: BROADCAST <mensaje>\n");
             }

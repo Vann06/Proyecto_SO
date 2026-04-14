@@ -3,10 +3,23 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <time.h>
 #include "client_receiver.h"
 #include "client.h"
 
 #define RECV_BUFFER_SIZE (MAX_SERIALIZED * 2)
+
+static void format_current_timestamp(char *out, size_t out_size) {
+    time_t now = time(NULL);
+    struct tm tm_now;
+
+    if (localtime_r(&now, &tm_now) == NULL) {
+        snprintf(out, out_size, "00:00:00");
+        return;
+    }
+
+    strftime(out, out_size, "%H:%M:%S", &tm_now);
+}
 
 void *receiver_thread_func(void *arg) {
     ClientContext *ctx = (ClientContext *)arg;
@@ -47,15 +60,25 @@ void *receiver_thread_func(void *arg) {
                 pthread_mutex_lock(&ctx->console_mutex);
                 
                 if (strcmp(msg.operacion, "DM") == 0) {
-                    printf("\n[DM de %s]: %s\n", msg.origen, msg.cuerpo);
+                    char ts[16];
+                    format_current_timestamp(ts, sizeof(ts));
+                    printf("\n[%s] [DM de %s]: %s\n", ts, msg.origen, msg.cuerpo);
                 } else if (strcmp(msg.operacion, "BROADCAST") == 0) {
-                    printf("\n[General - %s]: %s\n", msg.origen, msg.cuerpo);
+                    char ts[16];
+                    format_current_timestamp(ts, sizeof(ts));
+                    printf("\n[%s] [General - %s]: %s\n", ts, msg.origen, msg.cuerpo);
                 } else if (strcmp(msg.operacion, "LIST_RES") == 0 || strcmp(msg.operacion, "INFO_RES") == 0) {
-                    printf("\n[Servidor Info]:\n%s\n", msg.cuerpo);
+                    char ts[16];
+                    format_current_timestamp(ts, sizeof(ts));
+                    printf("\n[%s] [Servidor Info]:\n%s\n", ts, msg.cuerpo);
                 } else if (strcmp(msg.operacion, "ERROR") == 0) {
-                    printf("\n[ERROR]: %s\n", msg.cuerpo);
+                    char ts[16];
+                    format_current_timestamp(ts, sizeof(ts));
+                    printf("\n[%s] [ERROR]: %s\n", ts, msg.cuerpo);
                 } else {
-                    printf("\n[%s de %s]: %s\n", msg.operacion, msg.origen, msg.cuerpo);
+                    char ts[16];
+                    format_current_timestamp(ts, sizeof(ts));
+                    printf("\n[%s] [%s de %s]: %s\n", ts, msg.operacion, msg.origen, msg.cuerpo);
                 }
                 
                 // Reimprimir el prompt para mantener el UI limpio
