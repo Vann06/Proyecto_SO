@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 static int send_all_bytes(int socket_fd, const char *data, size_t size) {
+	// asegura envio completo aunque send mande parcial
 	size_t sent = 0;
 
 	while (sent < size) {
@@ -31,6 +32,7 @@ static int send_message_to_socket(int socket_fd, const Message *msg) {
 }
 
 int registry_init(UserRegistry *registry, int inactivity_timeout_secs) {
+	// inicializa estado global del registro compartido
 	if (registry == NULL) {
 		return -1;
 	}
@@ -40,6 +42,7 @@ int registry_init(UserRegistry *registry, int inactivity_timeout_secs) {
 	registry->enforce_unique_ip = 1;
 
 	const char *chat_env = getenv("CHAT_ENV");
+	// en testing se permite misma ip para pruebas locales
 	if (chat_env != NULL && strcmp(chat_env, "testing") == 0) {
 		registry->enforce_unique_ip = 0;
 	}
@@ -63,6 +66,7 @@ int registry_init(UserRegistry *registry, int inactivity_timeout_secs) {
 }
 
 void registry_destroy(UserRegistry *registry) {
+	// libera lista enlazada bajo lock y destruye mutex
 	if (registry == NULL) {
 		return;
 	}
@@ -83,6 +87,7 @@ void registry_destroy(UserRegistry *registry) {
 }
 
 int registry_add_user(UserRegistry *registry, const char *username, const char *ip, int socket_fd) {
+	// alta atomica de usuario con validaciones de unicidad
 	if (registry == NULL || username == NULL || ip == NULL) {
 		return -1;
 	}
@@ -114,6 +119,7 @@ int registry_add_user(UserRegistry *registry, const char *username, const char *
 	node->user.last_activity = time(NULL);
 
 	node->next = registry->head;
+	// inserta al inicio para costo o(1)
 	registry->head = node;
 
 	pthread_mutex_unlock(&registry->mutex);
@@ -121,6 +127,7 @@ int registry_add_user(UserRegistry *registry, const char *username, const char *
 }
 
 int registry_remove_user(UserRegistry *registry, const char *username) {
+	// elimina por username recorriendo lista enlazada
 	if (registry == NULL || username == NULL) {
 		return -1;
 	}
@@ -155,6 +162,7 @@ int registry_remove_user_by_socket(UserRegistry *registry,
 								   int socket_fd,
 								   char *username_out,
 								   size_t username_out_size) {
+	// variante de borrado para cierre de conexion por socket
 	if (registry == NULL) {
 		return -1;
 	}
@@ -249,6 +257,7 @@ int registry_touch_activity(UserRegistry *registry, const char *username, time_t
 }
 
 int registry_mark_inactive_if_timeout(UserRegistry *registry, time_t now_ts) {
+	// cambia estado a inactivo si pasa el timeout global
 	if (registry == NULL) {
 		return -1;
 	}
@@ -276,6 +285,7 @@ int registry_mark_inactive_if_timeout(UserRegistry *registry, time_t now_ts) {
 }
 
 int registry_build_user_list(UserRegistry *registry, char *out_buffer, size_t out_size) {
+	// arma csv de usernames en un solo buffer de salida
 	if (registry == NULL || out_buffer == NULL || out_size == 0) {
 		return -1;
 	}
@@ -336,6 +346,7 @@ int registry_username_from_socket(UserRegistry *registry,
 }
 
 int registry_send_to_user(UserRegistry *registry, const char *username, const Message *msg) {
+	// busca socket destino bajo lock y envia fuera del lock
 	if (registry == NULL || username == NULL || msg == NULL) {
 		return -1;
 	}
@@ -363,6 +374,7 @@ int registry_send_to_user(UserRegistry *registry, const char *username, const Me
 }
 
 int registry_broadcast(UserRegistry *registry, const Message *msg, const char *exclude_username) {
+	// snapshot de sockets para no bloquear mutex durante sends
 	if (registry == NULL || msg == NULL) {
 		return -1;
 	}

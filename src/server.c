@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 static size_t compute_message_size(const char *buffer, size_t bytes_in_buffer, const Message *msg) {
+	// calcula tam total header+cuerpo del primer mensaje completo
 	const void *line_break = memchr(buffer, '\n', bytes_in_buffer);
 	if (line_break == NULL) {
 		return 0;
@@ -19,6 +20,7 @@ static size_t compute_message_size(const char *buffer, size_t bytes_in_buffer, c
 }
 
 void *client_thread_func(void *arg) {
+	// este hilo atiende solo a un cliente hasta que se desconecte
 	ClientThreadArgs *thread_args = (ClientThreadArgs *)arg;
 	if (thread_args == NULL) {
 		return NULL;
@@ -38,6 +40,7 @@ void *client_thread_func(void *arg) {
 	int keep_running = 1;
 
 	while (keep_running) {
+		// deja siempre un byte para terminador nulo de seguridad
 		int free_space = SERVER_RECV_BUFFER - bytes_in_buffer - 1;
 		if (free_space <= 0) {
 			send_error_response(registry, client_socket, "buffer de recepcion saturado");
@@ -55,6 +58,7 @@ void *client_thread_func(void *arg) {
 
 		while (bytes_in_buffer > 0) {
 			Message msg;
+			// intenta parsear el primer mensaje del stream acumulado
 			int parse_res = deserializar_mensaje(recv_buffer, (size_t)bytes_in_buffer, &msg);
 
 			if (parse_res == 0) {
@@ -74,6 +78,7 @@ void *client_thread_func(void *arg) {
 				if (msg_size == 0 || msg_size > (size_t)bytes_in_buffer) {
 					bytes_in_buffer = 0;
 				} else {
+					// corre lo restante al inicio para el siguiente parse
 					memmove(recv_buffer,
 							recv_buffer + msg_size,
 							(size_t)bytes_in_buffer - msg_size);
@@ -99,6 +104,7 @@ void *client_thread_func(void *arg) {
 	}
 
 	char removed_username[MAX_NAME] = {0};
+	// limpieza final por socket para evitar sesiones zombie
 	registry_remove_user_by_socket(registry,
 								   client_socket,
 								   removed_username,
@@ -109,6 +115,7 @@ void *client_thread_func(void *arg) {
 }
 
 int run_server(int port, int inactivity_timeout_secs) {
+	// socket tcp principal del servidor
 	int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_socket < 0) {
 		perror("error al crear socket del servidor");
@@ -154,6 +161,7 @@ int run_server(int port, int inactivity_timeout_secs) {
 	printf("Servidor escuchando en puerto %d...\n", port);
 
 	while (1) {
+		// loop infinito de accept para atender clientes concurrentes
 		struct sockaddr_in client_addr;
 		socklen_t client_addr_len = sizeof(client_addr);
 		int client_socket = accept(server_socket,
@@ -187,6 +195,7 @@ int run_server(int port, int inactivity_timeout_secs) {
 		strncpy(thread_args->client_ip, client_ip, sizeof(thread_args->client_ip) - 1);
 
 		pthread_t thread_id;
+		// cada cliente se atiende en hilo independiente
 		if (pthread_create(&thread_id, NULL, client_thread_func, thread_args) != 0) {
 			close(client_socket);
 			free(thread_args);

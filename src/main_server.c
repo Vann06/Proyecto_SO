@@ -10,6 +10,7 @@
 #include "server.h"
 
 static void rtrim_in_place(char *s) {
+	// limpia espacios al final para parsear bien el .env
 	if (s == NULL) {
 		return;
 	}
@@ -22,6 +23,7 @@ static void rtrim_in_place(char *s) {
 }
 
 static char *ltrim(char *s) {
+	// salta espacios al inicio
 	while (s != NULL && *s != '\0' && isspace((unsigned char)*s)) {
 		s++;
 	}
@@ -29,6 +31,7 @@ static char *ltrim(char *s) {
 }
 
 static void strip_quotes(char *s) {
+	// quita comillas si vienen tipo "valor" o 'valor'
 	if (s == NULL) {
 		return;
 	}
@@ -41,6 +44,7 @@ static void strip_quotes(char *s) {
 }
 
 static void load_dotenv(const char *file_path) {
+	// loader simple de .env para no depender de librerias externas
 	FILE *fp = fopen(file_path, "r");
 	if (fp == NULL) {
 		return;
@@ -75,6 +79,7 @@ static void load_dotenv(const char *file_path) {
 			continue;
 		}
 
+		// sobreescribe variables para que .env mande
 		setenv(key, value, 1);
 	}
 
@@ -82,6 +87,7 @@ static void load_dotenv(const char *file_path) {
 }
 
 static int resolve_timeout(void) {
+	// toma timeout del entorno o usa default
 	int timeout = DEFAULT_INACTIVITY_TIMEOUT;
 	const char *env_timeout = getenv("CHAT_INACTIVITY_TIMEOUT");
 
@@ -96,6 +102,7 @@ static int resolve_timeout(void) {
 }
 
 static int parse_port(const char *value, int *out_port) {
+	// parseo estricto del puerto para evitar basura tipo 8080abc
 	char *endptr = NULL;
 	errno = 0;
 	long parsed = strtol(value, &endptr, 10);
@@ -109,6 +116,7 @@ static int parse_port(const char *value, int *out_port) {
 }
 
 static int resolve_port(int argc, char const *argv[], int *out_port) {
+	// prioridad puerto: argumento -> CHAT_PORT -> default compilado
 	const char *source = "valor por defecto";
 	const char *value = NULL;
 
@@ -143,6 +151,7 @@ int main(int argc, char const *argv[]) {
 	}
 
 	int port = PORT;
+	// deja el puerto final listo segun prioridad definida
 	if (resolve_port(argc, argv, &port) != 0) {
 		return 1;
 	}

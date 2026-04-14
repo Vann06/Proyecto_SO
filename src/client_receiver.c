@@ -10,6 +10,7 @@
 #define RECV_BUFFER_SIZE (MAX_SERIALIZED * 2)
 
 static void format_current_timestamp(char *out, size_t out_size) {
+    // hora local para etiquetar lo que llega
     time_t now = time(NULL);
     struct tm tm_now;
 
@@ -53,6 +54,7 @@ void *receiver_thread_func(void *arg) {
         // Procesar todos los mensajes completos en el buffer
         while (bytes_in_buffer > 0) {
             Message msg;
+            // intenta parsear el primer mensaje completo del stream tcp
             int res = deserializar_mensaje(buffer, bytes_in_buffer, &msg);
             
             if (res == 0) {
@@ -94,6 +96,7 @@ void *receiver_thread_func(void *arg) {
                     size_t total_msg_len = header_len + msg.longitud;
                     
                     if (total_msg_len <= (size_t)bytes_in_buffer) {
+                        // deja al inicio lo pendiente para el siguiente ciclo
                         memmove(buffer, buffer + total_msg_len, bytes_in_buffer - total_msg_len);
                         bytes_in_buffer -= total_msg_len;
                     } else {

@@ -8,6 +8,7 @@
 #include "protocol.h"
 
 static void format_current_timestamp(char *out, size_t out_size) {
+    // timestamp local para feedback rapido en consola
     time_t now = time(NULL);
     struct tm tm_now;
 
@@ -45,6 +46,7 @@ int send_message(ClientContext *ctx, const char *dest, const char *op, const cha
         return -1;
     }
 
+    // envio directo al socket del servidor
     if (send(ctx->socket_fd, buffer, bytes, 0) < 0) {
         perror("[Error de Red] Falló el envio");
         return -1;
@@ -112,6 +114,7 @@ void start_ui(ClientContext *ctx) {
             char *msgToken = strtok(NULL, "");
             if (userToken && msgToken) {
                 if (send_message(ctx, userToken, "DM", msgToken) == 0) {
+                    // confirmacion local de envio sin esperar respuesta del server
                     char ts[16];
                     format_current_timestamp(ts, sizeof(ts));
                     printf("[%s] [Enviado -> %s]: %s\n", ts, userToken, msgToken);
@@ -124,6 +127,7 @@ void start_ui(ClientContext *ctx) {
             token = strtok(NULL, "");
             if (token) {
                 if (send_message(ctx, "ALL", "BROADCAST", token) == 0) {
+                    // mismo feedback para broadcast
                     char ts[16];
                     format_current_timestamp(ts, sizeof(ts));
                     printf("[%s] [Broadcast enviado]: %s\n", ts, token);

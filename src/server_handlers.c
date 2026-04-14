@@ -7,6 +7,7 @@
 #include "utils.h"
 
 static int send_all_bytes(int socket_fd, const char *data, size_t size) {
+	// envia todo el payload aunque el kernel lo corte en partes
 	size_t sent = 0;
 
 	while (sent < size) {
@@ -25,6 +26,7 @@ static int send_message_to_socket(int socket_fd,
 								  const char *origen,
 								  const char *operacion,
 								  const char *cuerpo) {
+	// helper comun para armar+serializar+enviar respuestas
 	Message out_msg;
 	char buffer[MAX_SERIALIZED];
 	size_t written = 0;
@@ -41,6 +43,7 @@ static int send_message_to_socket(int socket_fd,
 }
 
 int send_error_response(UserRegistry *registry, int client_socket, const char *error_text) {
+	// intenta responder al username real si ya esta registrado
 	char username[MAX_NAME] = {0};
 	const char *dest = "CLIENT";
 
@@ -60,6 +63,7 @@ static int handle_register(UserRegistry *registry,
 						   int client_socket,
 						   const char *client_ip,
 						   const Message *msg) {
+	// registra usuario nuevo y devuelve info base de sesion
 	if (es_cadena_vacia(msg->origen)) {
 		send_error_response(registry, client_socket, "nombre de usuario invalido");
 		return 0;
@@ -96,6 +100,7 @@ static int validate_origin(UserRegistry *registry,
 						   const Message *msg,
 						   char *username_from_socket,
 						   size_t username_size) {
+	// evita suplantacion de origen comparando socket vs campo origen
 	if (registry_username_from_socket(registry,
 									  client_socket,
 									  username_from_socket,
@@ -183,6 +188,7 @@ static int handle_direct_message(UserRegistry *registry,
 								 int client_socket,
 								 const char *sender,
 								 const Message *msg) {
+	// dm solo acepta destinatario usuario valido, no server/all
 	if (es_cadena_vacia(msg->destinatario) || strcmp(msg->destinatario, "SERVER") == 0 ||
 		strcmp(msg->destinatario, "ALL") == 0) {
 		send_error_response(registry, client_socket, "destinatario invalido");
@@ -227,6 +233,7 @@ int handle_client_message(UserRegistry *registry,
 						  const char *client_ip,
 						  Message *msg,
 						  int *should_close) {
+	// router principal de operaciones del protocolo
 	if (registry == NULL || client_ip == NULL || msg == NULL || should_close == NULL) {
 		return -1;
 	}
@@ -245,6 +252,7 @@ int handle_client_message(UserRegistry *registry,
 	}
 
 	registry_touch_activity(registry, requester, time(NULL));
+	// cualquier accion normal reactiva al usuario
 	if (strcmp(msg->operacion, "STATUS") != 0 && strcmp(msg->operacion, "EXIT") != 0) {
 		registry_update_status(registry, requester, "ACTIVO");
 	}
