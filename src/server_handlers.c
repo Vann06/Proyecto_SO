@@ -252,10 +252,6 @@ int handle_client_message(UserRegistry *registry,
 	}
 
 	registry_touch_activity(registry, requester, time(NULL));
-	// cualquier accion normal reactiva al usuario
-	if (strcmp(msg->operacion, "STATUS") != 0 && strcmp(msg->operacion, "EXIT") != 0) {
-		registry_update_status(registry, requester, "ACTIVO");
-	}
 
 	if (strcmp(msg->operacion, "LIST_REQ") == 0) {
 		return handle_list_request(registry, client_socket, requester);
