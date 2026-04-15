@@ -12,6 +12,7 @@
 #include "client_ui.h"
 
 int connect_to_server(const char *ip, int port) {
+    // establece conexion tcp con el servidor remoto
     int sock;
     struct sockaddr_in serv_addr;
 
@@ -39,11 +40,12 @@ int connect_to_server(const char *ip, int port) {
 }
 
 int register_user(int socket_fd, const char *username) {
+    // envia REGISTER y espera confirmacion del servidor
     Message msg;
     char buffer[MAX_SERIALIZED];
     size_t bytes_escritos;
 
-    // Enviar solicitud REGISTER
+    // construye y envia solicitud para darse de alta
     if (construir_mensaje(&msg, "SERVER", username, "REGISTER", "") < 0) {
         printf("Error al construir mensaje de registro.\n");
         return -1;
@@ -59,7 +61,7 @@ int register_user(int socket_fd, const char *username) {
         return -1;
     }
 
-    // Esperar respuesta (INFO_RES = Éxito, ERROR = Fallo)
+    // espera respuesta del servidor (INFO_RES = exito, ERROR = fallo)
     int valread = recv(socket_fd, buffer, MAX_SERIALIZED - 1, 0);
     if (valread <= 0) {
         printf("El servidor cerró la conexión durante el registro.\n");
@@ -95,6 +97,7 @@ int main(int argc, char const *argv[]) {
     int port = PORT;
     char username[MAX_NAME];
 
+    // requiere 3 argumentos: usuario, ip, puerto
     if (argc != 4) {
         fprintf(stderr, "Uso: %s <usuario> <ip_servidor> <puerto_servidor>\n", argv[0]);
         return 1;
@@ -117,17 +120,19 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
 
+    // conecta al servidor
     int socket_fd = connect_to_server(ip, port);
     if (socket_fd < 0) {
         return 1;
     }
 
+    // se registra con el servidor
     if (register_user(socket_fd, username) < 0) {
         close(socket_fd);
         return 1;
     }
 
-    // Preparar contexto del cliente
+    // prepara contexto compartido para los dos hilos
     ClientContext ctx;
     ctx.socket_fd = socket_fd;
     strncpy(ctx.username, username, MAX_NAME);
@@ -135,7 +140,7 @@ int main(int argc, char const *argv[]) {
     pthread_mutex_init(&ctx.console_mutex, NULL);
     ctx.running = 1;
 
-    // Iniciar hilo receptor
+    // lanza hilo receptor que captura mensajes del servidor
     pthread_t receiver_thread;
     if (pthread_create(&receiver_thread, NULL, receiver_thread_func, &ctx) != 0) {
         perror("No se pudo crear el hilo receptor");
@@ -143,14 +148,13 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
 
-    // Iniciar el UI principal en este hilo
+    // el hilo principal atiende la consola interactiva
     start_ui(&ctx);
 
-    // Cuando start_ui termina (ej. el usuario eligió EXIT)
+    // cuando UI termina (usuario digito EXIT o Ctrl+C), cierra todo
     ctx.running = 0;
     
-    // Cerramos el socket, lo cual destrabará recv() en el hilo receptor 
-    // o podemos esperarlo.
+    // cierra socket para desbloquear recv() en hilo receptor
     shutdown(socket_fd, SHUT_RDWR);
     close(socket_fd);
     pthread_join(receiver_thread, NULL);

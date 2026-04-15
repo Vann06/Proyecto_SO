@@ -1,22 +1,24 @@
- #ifndef USER_H
- #define USER_H
+#ifndef USER_H
+#define USER_H
 
- #include <arpa/inet.h>
- #include <time.h>
+#include <arpa/inet.h>
+#include <time.h>
 
- #include "common.h"
+#include "common.h"
 
- typedef struct {
-	 char username[MAX_NAME];
-	 char ip[INET_ADDRSTRLEN];
-	 char status[MAX_STATUS];
-	 int socket_fd;
-	 time_t last_activity;
- } User;
+// datos de un usuario conectado en el servidor
+typedef struct {
+    char username[MAX_NAME];           // nombre unico
+    char ip[INET_ADDRSTRLEN];          // ip de origen
+    char status[MAX_STATUS];           // ACTIVO, OCUPADO, INACTIVO
+    int socket_fd;                     // descriptor para enviar mensajes
+    time_t last_activity;              // timestamp del ultimo evento
+} User;
 
- typedef struct UserNode {
-	 User user;
-	 struct UserNode *next;
- } UserNode;
+// nodo de la lista enlazada que guarda usuarios en el servidor
+typedef struct UserNode {
+    User user;
+    struct UserNode *next;             // enlace al siguiente
+} UserNode;
 
- #endif
+#endif

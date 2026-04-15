@@ -3,7 +3,8 @@
 
 #include "client.h"
 
-// Inicia el loop del menú interactivo (LIST, INFO, STATUS, MSG, BROADCAST, EXIT)
+// inicia la consola interactiva para que el usuario escriba comandos
+// soporta LIST, INFO, STATUS, MSG, BROADCAST, EXIT
 void start_ui(ClientContext *ctx);
 
 #endif // CLIENT_UI_H

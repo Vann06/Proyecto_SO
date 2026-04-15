@@ -20,6 +20,7 @@ static const char *OPERACIONES_VALIDAS[] = {
 static const size_t NUM_OPERACIONES =
     sizeof(OPERACIONES_VALIDAS) / sizeof(OPERACIONES_VALIDAS[0]);
 
+// suma bytes ascii de una cadena para el calculo del checksum
 static unsigned int sumar_bytes_cadena(const char *s) {
     unsigned int suma = 0;
 
@@ -35,6 +36,7 @@ static unsigned int sumar_bytes_cadena(const char *s) {
     return suma;
 }
 
+// valida que sea un tipo de operacion permitida del protocolo
 int es_operacion_valida(const char *operacion) {
     if (operacion == NULL || operacion[0] == '\0') {
         return 0;
@@ -49,6 +51,7 @@ int es_operacion_valida(const char *operacion) {
     return 0;
 }
 
+// valida que sea un estado conocido del protocolo
 int es_estado_valido(const char *estado) {
     if (estado == NULL) {
         return 0;
@@ -59,6 +62,7 @@ int es_estado_valido(const char *estado) {
            strcmp(estado, "INACTIVO") == 0;
 }
 
+// calcula checksum sumando bytes de todos los campos, modulo 65535
 unsigned int calcular_checksum(const Message *msg) {
     if (msg == NULL) {
         return 0;
@@ -86,6 +90,7 @@ int validar_checksum(const Message *msg) {
     return calcular_checksum(msg) == msg->validacion;
 }
 
+// arma un mensaje en memoria validando campos y calculando checksum
 int construir_mensaje(Message *msg,
                       const char *destinatario,
                       const char *origen,
@@ -95,6 +100,7 @@ int construir_mensaje(Message *msg,
         return -1;
     }
 
+    // rechaza operacion si no es del protocolo
     if (!es_operacion_valida(operacion)) {
         return -2;
     }
@@ -125,6 +131,7 @@ int construir_mensaje(Message *msg,
     return 0;
 }
 
+// convierte mensaje a bytes: header\ncuerpo para envio por socket
 int serializar_mensaje(const Message *msg,
                        char *buffer,
                        size_t buffer_size,
@@ -141,6 +148,7 @@ int serializar_mensaje(const Message *msg,
         return -3;
     }
 
+    // genera header del formato DEST|ORIG|OP|LEN|CHECK\n
     unsigned int checksum = calcular_checksum(msg);
 
     int header_len = snprintf(buffer,
@@ -174,6 +182,7 @@ int serializar_mensaje(const Message *msg,
     return 0;
 }
 
+// convierte stream tcp en mensaje, comprueba checksum
 int deserializar_mensaje(const char *buffer,
                          size_t bytes_recibidos,
                          Message *msg) {
@@ -183,6 +192,7 @@ int deserializar_mensaje(const char *buffer,
 
     memset(msg, 0, sizeof(Message));
 
+    // busca el salto de linea que marca fin del header
     const char *salto = NULL;
     for (size_t i = 0; i < bytes_recibidos; i++) {
         if (buffer[i] == '\n') {
@@ -192,7 +202,7 @@ int deserializar_mensaje(const char *buffer,
     }
 
     if (salto == NULL) {
-        return -2;
+        return -2;  // faltan datos, esperamos mas recv()
     }
 
     size_t header_size = (size_t)(salto - buffer);
@@ -234,7 +244,7 @@ int deserializar_mensaje(const char *buffer,
     size_t body_disponible = (bytes_recibidos > body_offset) ? (bytes_recibidos - body_offset) : 0;
 
     if ((size_t)msg->longitud > body_disponible) {
-        return -14;
+        return -14;  // cuerpo incompleto aun
     }
 
     if (msg->longitud > 0) {
@@ -242,8 +252,9 @@ int deserializar_mensaje(const char *buffer,
     }
     msg->cuerpo[msg->longitud] = '\0';
 
+    // verifica integridad del mensaje recibido
     if (!validar_checksum(msg)) {
-        return -15;
+        return -15;  // checksum no valida
     }
 
     return 0;
